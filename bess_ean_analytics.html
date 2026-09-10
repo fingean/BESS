@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BESS-EAN Battery Explorer & Analytics</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom scrollbar for a modern look */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- Header Principal -->
+    <header class="bg-gradient-to-r from-slate-900 to-indigo-950 text-white shadow-xl">
+        <div class="max-w-7xl mx-auto px-4 py-5 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="p-2.5 bg-indigo-600 rounded-xl shadow-md shadow-indigo-500/30">
+                    <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-extrabold tracking-tight">BESS-EAN Analytics</h1>
+                    <p class="text-xs text-indigo-300 font-medium tracking-wider uppercase">Estudio Comparativo de Almacenamiento Energético</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 text-sm bg-slate-800/80 border border-slate-700/60 rounded-full py-1.5 px-4 backdrop-blur-sm">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span class="text-slate-300 font-medium">Plataforma Académica de Decisión</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Barra de Navegación -->
+    <div class="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex space-x-8 overflow-x-auto py-3">
+                <button onclick="switchTab('explorer')" id="tab-explorer" class="tab-btn px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-200 border-b-2 border-indigo-600 text-indigo-600 bg-indigo-50/50">
+                    🔍 Explorador Electroquímico
+                </button>
+                <button onclick="switchTab('simulator')" id="tab-simulator" class="tab-btn px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-200 text-slate-500 hover:text-slate-800 hover:bg-slate-100">
+                    📊 Comparador & Radar
+                </button>
+                <button onclick="switchTab('consultant')" id="tab-consultant" class="tab-btn px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-200 text-slate-500 hover:text-slate-800 hover:bg-slate-100">
+                    🧠 Asesor de Ingeniería
+                </button>
+                <button onclick="switchTab('database')" id="tab-database" class="tab-btn px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-200 text-slate-500 hover:text-slate-800 hover:bg-slate-100 font-mono">
+                    🗃️ Base de Datos CSV
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contenedor de Contenido Principal -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <!-- TAB 1: EXPLORADOR ELECTROQUÍMICO -->
+        <section id="content-explorer" class="tab-content block space-y-8">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                
+                <!-- Selector Lateral de Baterías -->
+                <div class="lg:col-span-4 bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
+                    <h3 class="text-lg font-bold text-slate-900 border-b border-slate-100 pb-3">Selecciona una Química</h3>
+                    <div class="space-y-2 max-h-[500px] overflow-y-auto pr-2" id="battery-selector-list">
+                        <!-- Generado Dinámicamente -->
+                    </div>
+                </div>
+
+                <!-- Detalle Electroquímico e Ilustración -->
+                <div class="lg:col-span-8 space-y-6">
+                    <!-- Ficha Técnica -->
+                    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 pb-4">
+                            <div>
+                                <h2 class="text-2xl font-black text-slate-900" id="exp-title">LFP (Blade Battery)</h2>
+                                <p class="text-sm text-indigo-600 font-medium" id="exp-sub">LiFePO4 // Grafito de grano fino artificial</p>
+                            </div>
+                            <span class="px-3 py-1.5 bg-emerald-100 text-emerald-800 text-xs font-bold rounded-full border border-emerald-200" id="exp-safety-badge">Estabilidad: Alta</span>
+                        </div>
+
+                        <!-- Renderizado Esquemático de la Celda -->
+                        <div class="mt-6 bg-slate-900/95 rounded-xl p-6 text-white border border-slate-800 relative overflow-hidden">
+                            <h4 class="text-xs font-semibold uppercase text-indigo-400 tracking-wider mb-4">Esquema Físico Celular de Intercambio Iónico</h4>
+                            
+                            <div class="grid grid-cols-5 gap-2 items-stretch h-40 text-center relative z-10">
+                                <!-- Colector Cátodo -->
+                                <div class="bg-rose-900/40 border border-rose-500/30 rounded-lg p-2 flex flex-col justify-between">
+                                    <span class="text-[10px] text-rose-300 font-bold uppercase">Colector (+)</span>
+                                    <span class="text-sm font-bold text-rose-200" id="cell-col-cat">Aluminio</span>
+                                    <span class="text-[10px] text-rose-400">Espesor ~12μm</span>
+                                </div>
+                                <!-- Cátodo -->
+                                <div class="bg-rose-600/25 border border-rose-500/60 rounded-lg p-2 flex flex-col justify-between">
+                                    <span class="text-[10px] text-rose-200 font-bold uppercase">Cátodo</span>
+                                    <span class="text-xs font-bold" id="cell-cath">LiFePO4</span>
+                                    <div class="flex justify-center space-x-1">
+                                        <span class="w-1.5 h-1.5 bg-rose-400 rounded-full animate-bounce"></span>
+                                        <span class="w-1.5 h-1.5 bg-rose-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></span>
+                                    </div>
+                                </div>
+                                <!-- Separador / Electrolito -->
+                                <div class="bg-indigo-900/30 border border-indigo-500/30 rounded-lg p-2 flex flex-col justify-between relative overflow-hidden">
+                                    <span class="text-[10px] text-indigo-200 font-bold uppercase">Separador</span>
+                                    <span class="text-xs font-medium text-indigo-300" id="cell-elec">Líquido Carbonato</span>
+                                    <span class="text-[9px] text-indigo-400">Poro <0.1μm</span>
+                                    <div class="absolute inset-0 flex items-center justify-between pointer-events-none px-2">
+                                        <span class="w-2.5 h-2.5 bg-amber-400 rounded-full text-[8px] font-black text-slate-900 flex items-center justify-center animate-ping">Li+</span>
+                                    </div>
+                                </div>
+                                <!-- Ánodo -->
+                                <div class="bg-blue-600/25 border border-blue-500/60 rounded-lg p-2 flex flex-col justify-between">
+                                    <span class="text-[10px] text-blue-200 font-bold uppercase">Ánodo</span>
+                                    <span class="text-xs font-bold" id="cell-anode">Grafito fino</span>
+                                    <div class="flex justify-center space-x-1">
+                                        <span class="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse"></span>
+                                        <span class="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse" style="animation-delay: 0.3s"></span>
+                                    </div>
+                                </div>
+                                <!-- Colector Ánodo -->
+                                <div class="bg-blue-900/40 border border-blue-500/30 rounded-lg p-2 flex flex-col justify-between">
+                                    <span class="text-[10px] text-blue-300 font-bold uppercase">Colector (-)</span>
+                                    <span class="text-sm font-bold text-amber-500" id="cell-col-an">Cobre</span>
+                                    <span class="text-[10px] text-blue-400">Espesor ~8μm</span>
+                                </div>
+                            </div>
+
+                            <div class="mt-4 flex justify-between items-center text-xs text-slate-400 border-t border-slate-800/80 pt-3">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span> <span>Polo Positivo</span>
+                                </div>
+                                <div class="text-[11px] text-amber-300 flex items-center gap-1">
+                                    <span class="inline-block animate-bounce font-bold">→</span> Intercalación del portador de carga durante la descarga
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span> <span>Polo Negativo</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Panel de Datos Cuantitativos de Diseño -->
+                        <div class="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div class="bg-slate-50 border border-slate-100 p-4 rounded-xl text-center">
+                                <span class="text-xs font-medium text-slate-500 block uppercase tracking-wider">Voltaje Nominal</span>
+                                <span class="text-xl font-extrabold text-slate-950 mt-1 block" id="exp-volt">3.2 V</span>
+                            </div>
+                            <div class="bg-slate-50 border border-slate-100 p-4 rounded-xl text-center">
+                                <span class="text-xs font-medium text-slate-500 block uppercase tracking-wider">Densidad Celda</span>
+                                <span class="text-xl font-extrabold text-slate-950 mt-1 block" id="exp-density">140 - 165 Wh/kg</span>
+                            </div>
+                            <div class="bg-slate-50 border border-slate-100 p-4 rounded-xl text-center">
+                                <span class="text-xs font-medium text-slate-500 block uppercase tracking-wider">Eficiencia Energética</span>
+                                <span class="text-xl font-extrabold text-slate-950 mt-1 block" id="exp-eff">92 - 96 %</span>
+                            </div>
+                            <div class="bg-slate-50 border border-slate-100 p-4 rounded-xl text-center">
+                                <span class="text-xs font-medium text-slate-500 block uppercase tracking-wider">Durabilidad</span>
+                                <span class="text-xl font-extrabold text-slate-950 mt-1 block text-indigo-600" id="exp-cycles">3,000 - 6,000 c</span>
+                            </div>
+                        </div>
+
+                        <!-- Mecanismo de Degradación y Geoestratégica -->
+                        <div class="mt-6 space-y-4">
+                            <div class="p-4 bg-indigo-50/50 border border-indigo-100/60 rounded-xl">
+                                <h4 class="text-sm font-bold text-indigo-900 flex items-center gap-1.5">
+                                    ⚙️ Mecanismo de Degradación Dominante
+                                </h4>
+                                <p class="text-xs text-indigo-800 mt-1.5 leading-relaxed" id="exp-deg">
+                                    Crecimiento continuo de la capa SEI, pérdida de litio inventariable (LLI) por consumo de electrolito.
+                                </p>
+                            </div>
+                            
+                            <div class="p-4 bg-amber-50/50 border border-amber-100/60 rounded-xl">
+                                <h4 class="text-sm font-bold text-amber-900 flex items-center gap-1.5">
+                                    🌍 Cadena de Suministro y Geopolítica
+                                </h4>
+                                <p class="text-xs text-amber-800 mt-1.5 leading-relaxed" id="exp-geopol">
+                                    Litio: Australia / Chile / Argentina. Hierro-Fósforo-Grafito: Monopolio de refinado concentrado en Asia (China).
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 2: SIMULADOR & RADAR -->
+        <section id="content-simulator" class="tab-content hidden space-y-8">
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+                <div class="border-b border-slate-100 pb-4">
+                    <h2 class="text-xl font-bold text-slate-950">Comparador Cruzado Multidimensional</h2>
+                    <p class="text-sm text-slate-500">Selecciona hasta 3 tecnologías para proyectar sus diagramas de radar electroquímico en paralelo y contrastar sus propiedades clave.</p>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 mt-6">
+                    <!-- Configuración Comparador -->
+                    <div class="lg:col-span-4 space-y-6">
+                        <div class="space-y-3">
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600">Batería A (Línea Azul)</label>
+                            <select id="comp-sel-a" onchange="updateComparisonCharts()" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <!-- Opciones Generadas -->
+                            </select>
+                        </div>
+                        <div class="space-y-3">
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600">Batería B (Línea Roja)</label>
+                            <select id="comp-sel-b" onchange="updateComparisonCharts()" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <!-- Opciones Generadas -->
+                            </select>
+                        </div>
+                        <div class="space-y-3">
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600">Batería C (Línea Ámbar)</label>
+                            <select id="comp-sel-c" onchange="updateComparisonCharts()" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <!-- Opciones Generadas -->
+                            </select>
+                        </div>
+
+                        <!-- Explicación de Ejes del Radar -->
+                        <div class="p-4 bg-slate-50 rounded-xl border border-slate-100 space-y-2">
+                            <h4 class="text-xs font-bold uppercase text-slate-700 tracking-wider">Métricas Analizadas</h4>
+                            <ul class="text-[11px] text-slate-600 space-y-1.5 list-disc pl-4">
+                                <li><strong>Densidad:</strong> Wh/kg máximo registrado de la celda.</li>
+                                <li><strong>Seguridad:</strong> Resistencia a la autoignición o colapso térmico.</li>
+                                <li><strong>Ciclabilidad:</strong> Resiliencia a la carga/descarga repetida (@80% DoD).</li>
+                                <li><strong>Sostenibilidad:</strong> Grado de independencia de Co/Ni y uso de materiales comunes.</li>
+                                <li><strong>Potencia:</strong> Tasa de descarga continua para demandas pico.</li>
+                                <li><strong>Estabilidad Térmica:</strong> Operación en límites de alta temperatura.</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Gráfico de Radar -->
+                    <div class="lg:col-span-8 flex justify-center items-center bg-slate-50/50 rounded-2xl border border-slate-100 p-6 min-h-[400px]">
+                        <div class="w-full max-w-lg h-full relative">
+                            <canvas id="radarChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tabla Comparativa de Atributos Directos -->
+                <div class="mt-8 border-t border-slate-100 pt-6 overflow-x-auto">
+                    <h3 class="text-lg font-bold text-slate-900 mb-4">Métricas Comparadas</h3>
+                    <table class="w-full text-sm text-left text-slate-500 border-collapse">
+                        <thead>
+                            <tr class="text-xs text-slate-700 uppercase bg-slate-100 border-b border-slate-200">
+                                <th class="py-3 px-4">Parámetro Técnico</th>
+                                <th class="py-3 px-4 text-blue-600" id="table-hdr-a">Batería A</th>
+                                <th class="py-3 px-4 text-red-600" id="table-hdr-b">Batería B</th>
+                                <th class="py-3 px-4 text-amber-600" id="table-hdr-c">Batería C</th>
+                            </tr>
+                        </thead>
+                        <tbody id="comparison-table-body" class="divide-y divide-slate-100">
+                            <!-- Filas de datos cargadas dinámicamente -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: ASESOR DE INGENIERÍA -->
+        <section id="content-consultant" class="tab-content hidden space-y-8">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                <!-- Parámetros del Proyecto -->
+                <div class="lg:col-span-5 bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-950">Asesor de Diseño de Ingeniería</h2>
+                        <p class="text-xs text-slate-500 mt-1">Ingresa los requisitos de rendimiento de tu sistema BESS o EV para calcular la química de batería que ofrece la mejor compatibilidad electroquímica y económica.</p>
+                    </div>
+
+                    <form id="recommendation-form" onsubmit="calculateRecommendation(event)" class="space-y-4">
+                        <!-- Aplicación -->
+                        <div class="space-y-2">
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600">Tipo de Aplicación</label>
+                            <select id="req-app" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <option value="ev-premium">Vehículo Eléctrico Premium (Largo Alcance)</option>
+                                <option value="ev-urban">Vehículo Urbano / Flotas de Buses</option>
+                                <option value="bess-grid">Almacenamiento Estacionario BESS (Red / Solar)</option>
+                                <option value="industrial-heavy">Carga Ultra-Rápida / Maquinaria Pesada</option>
+                                <option value="ev-micro">Micro-movilidad o Vehículo de bajo costo</option>
+                            </select>
+                        </div>
+
+                        <!-- Prioridad Número 1 -->
+                        <div class="space-y-2">
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600">Prioridad Principal del Sistema</label>
+                            <select id="req-priority" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <option value="density">Densidad de Energía (Maximizar Autonomía)</option>
+                                <option value="safety">Seguridad Máxima (Cero Fuga Térmica)</option>
+                                <option value="durability">Ciclabilidad / Longevidad (Vida útil de >15 años)</option>
+                                <option value="cost">Costo del Pack e Independencia Geopolítica</option>
+                                <option value="power">Entrega de Potencia / Carga en minutos</option>
+                            </select>
+                        </div>
+
+                        <!-- Temperatura de Operación -->
+                        <div class="space-y-2">
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600">Entorno Térmico Esperado</label>
+                            <select id="req-temp" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <option value="controlled">Entorno Controlado por HVAC (20°C a 30°C)</option>
+                                <option value="hot">Climas Tropicales / Sin Climatización (>40°C)</option>
+                                <option value="cold">Climas Extremadamente Fríos / Invierno (< -10°C)</option>
+                            </select>
+                        </div>
+
+                        <!-- Presupuesto Estimado -->
+                        <div class="space-y-2">
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600">Nivel de Sensibilidad al Costo</label>
+                            <div class="grid grid-cols-3 gap-2">
+                                <label class="border border-slate-200 rounded-xl p-3 text-center cursor-pointer hover:bg-slate-50 block">
+                                    <input type="radio" name="req-budget" value="low" checked class="sr-only peer">
+                                    <span class="text-xs font-semibold text-slate-700 peer-checked:text-indigo-600 block">Económico</span>
+                                </label>
+                                <label class="border border-slate-200 rounded-xl p-3 text-center cursor-pointer hover:bg-slate-50 block">
+                                    <input type="radio" name="req-budget" value="medium" class="sr-only peer">
+                                    <span class="text-xs font-semibold text-slate-700 peer-checked:text-indigo-600 block">Balanceado</span>
+                                </label>
+                                <label class="border border-slate-200 rounded-xl p-3 text-center cursor-pointer hover:bg-slate-50 block">
+                                    <input type="radio" name="req-budget" value="high" class="sr-only peer">
+                                    <span class="text-xs font-semibold text-slate-700 peer-checked:text-indigo-600 block">Sin Límite (Rendimiento)</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-md shadow-indigo-500/10 transition-colors duration-150">
+                            🔍 Calcular Optimización Electroquímica
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Prescripción de Ingeniería -->
+                <div class="lg:col-span-7 space-y-6">
+                    <div class="bg-gradient-to-br from-slate-900 to-indigo-950 text-white rounded-2xl p-6 shadow-xl relative overflow-hidden">
+                        <div class="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl"></div>
+                        
+                        <div class="flex items-center gap-2 mb-4">
+                            <span class="px-2 py-1 bg-indigo-500/20 border border-indigo-400/30 text-indigo-300 text-[10px] font-bold tracking-wider uppercase rounded-md">Prescripción Técnica</span>
+                        </div>
+
+                        <div class="space-y-4 relative z-10">
+                            <div>
+                                <h3 class="text-xs font-medium text-indigo-200 uppercase tracking-wider">La Química Recomendada es:</h3>
+                                <h2 class="text-3xl font-black mt-1" id="rec-chemistry-title">LFP (Blade Battery)</h2>
+                                <p class="text-sm text-indigo-300 mt-1" id="rec-chemistry-subtitle">Fosfato de Hierro y Litio con empaque optimizado CTP</p>
+                            </div>
+
+                            <div class="p-4 bg-slate-800/80 border border-slate-700 rounded-xl space-y-1.5">
+                                <h4 class="text-xs font-bold text-amber-400 uppercase tracking-wider">Justificación Técnica del Algoritmo</h4>
+                                <p class="text-xs text-slate-200 leading-relaxed" id="rec-rationale">
+                                    Para aplicaciones de almacenamiento masivo, el LFP entrega el menor costo por ciclo de vida ($/kWh-ciclo) mientras mitiga completamente los riesgos de inestabilidad térmica asociados con la combustión asistida por oxígeno de las químicas ricas en níquel.
+                                </p>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-4 pt-2">
+                                <div class="border-l-2 border-indigo-500 pl-3">
+                                    <span class="text-[10px] text-slate-400 uppercase tracking-wider">Tasa de Compatibilidad</span>
+                                    <span class="text-xl font-bold block text-emerald-400" id="rec-score">96%</span>
+                                </div>
+                                <div class="border-l-2 border-indigo-500 pl-3">
+                                    <span class="text-[10px] text-slate-400 uppercase tracking-wider">Estimado Costo de Celda</span>
+                                    <span class="text-xl font-bold block text-amber-300" id="rec-cost-range">Bajo (< $75/kWh)</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Especificaciones Detalladas del Sistema Recomendado -->
+                    <div class="bg-white rounded-2xl border border-slate-200 p-6 space-y-4">
+                        <h3 class="text-base font-bold text-slate-900">Directrices para Integración de Planta (BMS / HVAC)</h3>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                            <div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                <span class="font-bold text-slate-700 block mb-1">📋 Requisito del BMS</span>
+                                <p class="text-slate-600 leading-relaxed" id="rec-bms-guide">Para LFP, se requiere un balanceador de celdas con resolución mínima de 2mV debido a la curva de descarga plana entre el 20% y 80% de SoC.</p>
+                            </div>
+                            <div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                <span class="font-bold text-slate-700 block mb-1">❄️ Control Térmico (HVAC)</span>
+                                <p class="text-slate-600 leading-relaxed" id="rec-hvac-guide">Refrigeración líquida indirecta para disipar el calor entálpico generado durante la carga rápida por encima de 1.5C.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 4: DATABASE & EXPORTER -->
+        <section id="content-database" class="tab-content hidden space-y-6">
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-950">Estructura Plana de Datos Industriales</h2>
+                        <p class="text-xs text-slate-500 mt-1">Matriz de datos unificada, limpia y formateada en una sola línea por registro para compatibilidad estricta con motores de bases de datos y hojas de cálculo.</p>
+                    </div>
+                    <button onclick="downloadCSV()" class="py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all duration-150 shadow-md shadow-emerald-500/10">
+                        📥 Descargar Tabla Maestra (.CSV)
+                    </button>
+                </div>
+
+                <div class="bg-slate-900 rounded-xl p-4 text-slate-300 font-mono text-[10px] sm:text-xs overflow-x-auto max-h-[400px]">
+                    <pre id="csv-viewer" class="whitespace-pre"></pre>
+                </div>
+
+                <div class="p-4 bg-amber-50 rounded-xl border border-amber-100">
+                    <p class="text-xs text-amber-800 leading-relaxed">
+                        <strong>Nota de Integración:</strong> El delimitador utilizado es el punto y coma (<code>;</code>) para asegurar que las comas presentes en las especificaciones químicas o geográficas no rompan la estructura de las columnas al importarlo en Microsoft Excel o Python (Pandas).
+                    </p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer de Calidad Académica -->
+    <footer class="bg-slate-900 text-slate-400 py-6 border-t border-slate-800 mt-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-2">
+            <p class="text-xs font-medium">Revisión Comparativa de Almacenamiento Energético en Baterías para BESS y Movilidad</p>
+            <p class="text-[10px] text-slate-500">Universidad Ean · Bogotá, Colombia · 2026</p>
+        </div>
+    </footer>
+
+    <!-- LOGICA DE CONTROL DE LA HERRAMIENTA -->
+    <script>
+        // Set de Datos Global Basado estrictamente en la investigación comparativa y el doc BESS.docx
+        const BATTERY_DATABASE = [
+            {
+                id: 1,
+                name: "LFP (Blade Battery)",
+                formula: "LiFePO4 // Grafito esferoidal sintético",
+                voltage: "3.2 V",
+                colCat: "Aluminio (~12μm)",
+                colAn: "Cobre (~8μm)",
+                cathMat: "LiFePO4",
+                anodeMat: "Grafito sintético",
+                electrolyte: "Orgánico carbonatado líquido",
+                density: "140 - 165 Wh/kg",
+                efficiency: "92 - 96 %",
+                cycles: "3,000 - 6,000 c",
+                lifespan: "10 - 18 años",
+                degradation: "Crecimiento continuo de la capa SEI, consumo de litio activo (LLI) y pérdida de conductividad interfacial.",
+                geopolitics: "Extracción del Litio: Chile/Australia. Producción de precursores, Hierro-Fósforo y grafito altamente concentrado en cadenas de valor asiáticas (China).",
+                safety: "Alta estabilidad térmica (~270°C). Estructura de olivino robusta que evita fugas exotérmicas explosivas.",
+                powerValue: 80, // Escala 1-100 para radar
+                densityValue: 60,
+                safetyValue: 95,
+                durabilityValue: 90,
+                costValue: 85, // Alto significa económico/beneficioso
+                tempStabilityValue: 80,
+                hvac: "Refrigeración líquida indirecta para control en tasas de carga superiores a 1C.",
+                bms: "Algoritmos avanzados de estimación de SoC por filtro de Kalman debido a la curva de voltaje de descarga muy plana."
+            },
+            {
+                id: 2,
+                name: "LFP (Qilin / CTP 3.0)",
+                formula: "LiFePO4 // Grafito + dopaje Silicio (Si)",
+                voltage: "3.2 V",
+                colCat: "Aluminio (~12μm)",
+                colAn: "Cobre (~8μm)",
+                cathMat: "LiFePO4",
+                anodeMat: "Grafito + dopaje Si",
+                electrolyte: "Líquido carbonatado + aditivos",
+                density: "160 - 180 Wh/kg",
+                efficiency: "92 - 96 %",
+                cycles: "2,500 - 5,000 c",
+                lifespan: "10 - 15 años",
+                degradation: "Microfisuras mecánicas en el ánodo por expansión volumétrica del Silicio y degradación del electrolito líquido.",
+                geopolitics: "Litio: Australia / Argentina. Grafito de alta pureza: concentrado en Mongolia Interior y noreste asiático.",
+                safety: "Muy seguro. Temperatura crítica de cortocircuito interna controlada cerca de los 250°C.",
+                powerValue: 85,
+                densityValue: 68,
+                safetyValue: 90,
+                durabilityValue: 85,
+                costValue: 80,
+                tempStabilityValue: 75,
+                hvac: "Refrigeración líquida elástica bifacial integrada directamente como elemento estructural del pack.",
+                bms: "Compensación activa por algoritmos de expansión física para monitorear esfuerzos mecánicos de las celdas."
+            },
+            {
+                id: 3,
+                name: "LMFP (Fosfato con Manganeso)",
+                formula: "LiMn_xFe_1-xPO4 // Grafito-Silicio (Si-C)",
+                voltage: "3.7 V - 4.0 V",
+                colCat: "Aluminio (~15μm)",
+                colAn: "Cobre (~10μm)",
+                cathMat: "LiMnFePO4",
+                anodeMat: "Compuesto Si-C",
+                electrolyte: "Gel semisólido / líquido",
+                density: "180 - 230 Wh/kg",
+                efficiency: "91 - 95 %",
+                cycles: "2,000 - 4,500 c",
+                lifespan: "8 - 15 años",
+                degradation: "Efecto Jahn-Teller en iones Mn, disolución parcial del Manganeso que ataca la estabilidad del ánodo.",
+                geopolitics: "Manganeso: Sudáfrica / Gabón / Australia. Refinado de reactivo químico técnico monopolizado en China.",
+                safety: "Bajo - Medio riesgo térmico. Retiene el carácter seguro de los compuestos fosfóricos, umbral crítico a 240°C.",
+                powerValue: 82,
+                densityValue: 75,
+                safetyValue: 85,
+                durabilityValue: 80,
+                costValue: 75,
+                tempStabilityValue: 70,
+                hvac: "Refrigeración de placas de flujo paralelo para balancear la carga asimétrica inducida por los dos platos de potencial.",
+                bms: "Balanceo de voltaje asimétrico estricto debido a la coexistencia de potenciales del Hierro y del Manganeso."
+            },
+            {
+                id: 4,
+                name: "NMC (Densidad Media)",
+                formula: "LiNi_xMn_yCo_zO2 // Grafito esferoidizado",
+                voltage: "3.6 V - 3.7 V",
+                colCat: "Aluminio (~15μm)",
+                colAn: "Cobre (~10μm)",
+                cathMat: "LiNiMnCoO2 (111/532/622)",
+                anodeMat: "Grafito esferoidal",
+                electrolyte: "Líquido orgánico altamente conductor",
+                density: "180 - 230 Wh/kg",
+                efficiency: "90 - 95 %",
+                cycles: "1,000 - 2,500 c",
+                lifespan: "8 - 12 años",
+                degradation: "Evolución de fase de la superficie activa a espinela desordenada, liberación de gases de hidrocarburos.",
+                geopolitics: "Cobalto: Rep. Dem. del Congo (RDC). Níquel: Indonesia. Refinado de alta pureza centralizado en China y Finlandia.",
+                safety: "Riesgo moderado. Umbral crítico a 210°C con liberación de vapores a alta presión. Requiere ventilación activa.",
+                powerValue: 88,
+                densityValue: 80,
+                safetyValue: 65,
+                durabilityValue: 65,
+                costValue: 60,
+                tempStabilityValue: 60,
+                hvac: "Enfriamiento por líquido activo (mezcla agua-glicol) con chiller dedicado para mitigar aceleración por autocalentamiento.",
+                bms: "Algoritmos dedicados para protección ante sobrecarga y detección de micro-cortocircuitos mediante ruido galvánico."
+            },
+            {
+                id: 5,
+                name: "NMC 811 (Alto Níquel)",
+                formula: "LiNi_0.8Mn_0.1Co_0.1O2 // Grafito + Si",
+                voltage: "3.7 V",
+                colCat: "Aluminio (~15μm)",
+                colAn: "Cobre (~8μm)",
+                cathMat: "LiNi0.8Mn0.1Co0.1O2",
+                anodeMat: "Grafito + Óxido Silicio",
+                electrolyte: "Orgánico con aditivos de fluoroetileno",
+                density: "250 - 300 Wh/kg",
+                efficiency: "89 - 94 %",
+                cycles: "800 - 2,000 c",
+                lifespan: "6 - 10 años",
+                degradation: "Liberación de oxígeno de la estructura a T>150°C, grietas microestructurales severas en partículas.",
+                geopolitics: "Níquel Clase 1: Indonesia (Proceso HPAL). Cobalto y Litio químico de alta gama con restricciones de suministro.",
+                safety: "Riesgo elevado. Temperatura crítica de colapso a 180°C con alta propensión a la fuga térmica violenta.",
+                powerValue: 92,
+                densityValue: 90,
+                safetyValue: 50,
+                durabilityValue: 55,
+                costValue: 45,
+                tempStabilityValue: 50,
+                hvac: "Sistema HVAC forzado continuo y barreras de aerogel de sílice entre celdas para prevenir la propagación térmica.",
+                bms: "Monitoreo constante de impedancia y limitación dinámica de corriente en climas por encima de 45°C."
+            },
+            {
+                id: 6,
+                name: "NCA (Alto Níquel Premium)",
+                formula: "LiNiCoAlO2 // Grafito + Nanocompuestos Si",
+                voltage: "3.64 V",
+                colCat: "Aluminio (~15μm)",
+                colAn: "Cobre (~8μm)",
+                cathMat: "LiNiCoAlO2",
+                anodeMat: "Grafito + Nanocompuestos Si",
+                electrolyte: "Líquido altamente inflamable",
+                density: "260 - 310 Wh/kg",
+                efficiency: "89 - 94 %",
+                cycles: "800 - 1,800 c",
+                lifespan: "6 - 10 años",
+                degradation: "Inestabilidad interfacial acelerada por reacción del catión Ni4+ altamente oxidado con los disolventes del electrolito.",
+                geopolitics: "Aluminio de pureza electrónica. Níquel y Cobalto integrados mediante traders especializados en Japón (SMM).",
+                safety: "Muy alto riesgo. Autocalentamiento violento con umbral crítico a los 175°C. Propagación rápida entre celdas adyacentes.",
+                powerValue: 95,
+                densityValue: 95,
+                safetyValue: 40,
+                durabilityValue: 50,
+                costValue: 40,
+                tempStabilityValue: 45,
+                hvac: "Placa fría líquida de alta conductividad con sensores redundantes en el módulo para desactivación de emergencia.",
+                bms: "Algoritmos dinámicos de des-calificación de corriente (Derating) basados en la temperatura puntual del cátodo."
+            },
+            {
+                id: 7,
+                name: "LTO (SCiB Heavy Duty)",
+                formula: "LiMn2O4 o NMC // Titanato de Litio (Li4Ti5O12)",
+                voltage: "2.3 V - 2.4 V",
+                colCat: "Aluminio (~15μm)",
+                colAn: "Aluminio (~15μm)", // ¡LTO usa aluminio en ambos!
+                cathMat: "LiMn2O4 o NMC",
+                anodeMat: "Titanato de Litio",
+                electrolyte: "Carbonato líquido modificado",
+                density: "70 - 110 Wh/kg",
+                efficiency: "88 - 94 %",
+                cycles: "20,000 - 30,000 c",
+                lifespan: "15 - 25 años",
+                degradation: "Gasificación residual menor por descomposición de trazas de agua a alto potencial. Degradación estructural despreciable.",
+                geopolitics: "Titanio abundante a nivel global (Australia, Canadá). Independiente de las cadenas complejas de grafito artificial.",
+                safety: "Inmune a fugas térmicas explosivas tradicionales. Estabilidad excepcional, tolera cortocircuito físico sin combustión.",
+                powerValue: 98,
+                densityValue: 35,
+                safetyValue: 100,
+                durabilityValue: 100,
+                costValue: 50, // Costo de compra inicial alto, pero por ciclo es extremadamente bajo
+                tempStabilityValue: 95,
+                hvac: "Refrigeración líquida opcional, solo para optimizar ciclos intensivos de carga ultra-rápida (10C).",
+                bms: "BMS industrial robusto que aprovecha la excelente linealidad de voltaje-capacidad de la electroquímica LTO."
+            },
+            {
+                id: 8,
+                name: "Sodio-ion (Sostenible)",
+                formula: "Óxido Laminado de Sodio // Carbono Duro (Hard Carbon)",
+                voltage: "3.0 V - 3.1 V",
+                colCat: "Aluminio (~15μm)",
+                colAn: "Aluminio (~15μm)", // ¡Na-ion usa Aluminio en el ánodo también!
+                cathMat: "Óxido de Sodio laminado",
+                anodeMat: "Carbono Duro",
+                electrolyte: "Electrolito basado en sales de Sodio (NaClO4/NaPF6)",
+                density: "140 - 160 Wh/kg",
+                efficiency: "88 - 94 %",
+                cycles: "1,500 - 4,000 c",
+                lifespan: "8 - 12 años",
+                degradation: "Disolución menor de metales de transición del cátodo en el electrolito e inestabilidad del SEI del Carbono Duro.",
+                geopolitics: "Independencia completa de litio, cobalto y níquel. Ceniza de sosa abundante globalmente.",
+                safety: "Bajo riesgo. Admite descarga completa hasta 0 Voltios de forma segura para transporte sin degradación galvánica.",
+                powerValue: 78,
+                densityValue: 55,
+                safetyValue: 88,
+                durabilityValue: 75,
+                costValue: 90, // El más económico en materias primas
+                tempStabilityValue: 85,
+                hvac: "HVAC simplificado. Excelente respuesta natural en climas fríos y calientes moderados sin refrigeración agresiva.",
+                bms: "Electrónica simplificada y tolerante gracias a los colectores simétricos de aluminio en ambos electrodos."
+            },
+            {
+                id: 9,
+                name: "Semi-sólido / Gel Polymer",
+                formula: "Ultra-High NMC // Grafito denso + Silicio",
+                voltage: "3.7 V - 3.8 V",
+                colCat: "Aluminio (~15μm)",
+                colAn: "Cobre (~8μm)",
+                cathMat: "LiNiMnCoO2 (Semisólido)",
+                anodeMat: "Grafito densificado + Si",
+                electrolyte: "Electrolito híbrido en gel polimérico",
+                density: "300 - 360 Wh/kg",
+                efficiency: "90 - 95 %",
+                cycles: "1,000 - 2,500 c",
+                lifespan: "8 - 12 años",
+                degradation: "Incremento continuo de la resistencia interfacial debido a la delaminación microscópica entre el gel y los electrodos.",
+                geopolitics: "Misma dependencia del níquel premium con adición de compuestos conductores de litio (LLZO cerámicos).",
+                safety: "Riesgo moderado. El gel polimérico previene fugas de líquido inflamable y ralentiza mecánicamente la fuga térmica.",
+                powerValue: 80,
+                densityValue: 100,
+                safetyValue: 70,
+                durabilityValue: 68,
+                costValue: 35, // Tecnología costosa en etapas iniciales
+                tempStabilityValue: 65,
+                hvac: "Control térmico de placa líquida convencional con énfasis en el control del cambio volumétrico celular.",
+                bms: "Algoritmos sofisticados para monitorear variaciones de resistencia interna a nivel de celda por delaminación."
+            }
+        ];
+
+        let radarChartInstance = null;
+
+        // Inicialización de la Aplicación
+        window.onload = function() {
+            renderBatterySelectors();
+            selectBatteryExplorer(1); // Cargar LFP Blade por defecto
+            initComparisonSelectors();
+            updateComparisonCharts();
+            renderCSVData();
+        };
+
+        // Cambiar entre Pestañas
+        function switchTab(tabId) {
+            // Ocultar todos los contenidos de pestañas
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.add('hidden');
+                content.classList.remove('block');
+            });
+            
+            // Mostrar contenido seleccionado
+            const selectedContent = document.getElementById(`content-${tabId}`);
+            if (selectedContent) {
+                selectedContent.classList.remove('hidden');
+                selectedContent.classList.add('block');
+            }
+
+            // Cambiar estilos de los botones
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('text-indigo-600', 'bg-indigo-50/50', 'border-b-2', 'border-indigo-600');
+                btn.classList.add('text-slate-500', 'hover:text-slate-800', 'hover:bg-slate-100');
+            });
+
+            const activeBtn = document.getElementById(`tab-${tabId}`);
+            if (activeBtn) {
+                activeBtn.classList.remove('text-slate-500', 'hover:text-slate-800', 'hover:bg-slate-100');
+                activeBtn.classList.add('text-indigo-600', 'bg-indigo-50/50', 'border-b-2', 'border-indigo-600');
+            }
+
+            // Forzar actualización del gráfico si se entra al simulador
+            if (tabId === 'simulator') {
+                setTimeout(updateComparisonCharts, 50);
+            }
+        }
+
+        // Renderizar Lista de Selección en Pestaña 1
+        function renderBatterySelectors() {
+            const container = document.getElementById('battery-selector-list');
+            container.innerHTML = '';
+            
+            BATTERY_DATABASE.forEach(bat => {
+                const btn = document.createElement('button');
+                btn.id = `btn-explorer-${bat.id}`;
+                btn.className = `w-full text-left p-4 rounded-xl border transition-all duration-150 flex flex-col gap-1 hover:bg-slate-50 border-slate-200`;
+                btn.onclick = () => selectBatteryExplorer(bat.id);
+                
+                btn.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <span class="font-bold text-slate-900 text-sm">${bat.name}</span>
+                        <span class="text-[10px] text-indigo-600 font-bold">${bat.voltage}</span>
+                    </div>
+                    <span class="text-xs text-slate-500 font-medium truncate">${bat.formula}</span>
+                `;
+                container.appendChild(btn);
+            });
+        }
+
+        // Seleccionar Batería en Pestaña 1
+        function selectBatteryExplorer(id) {
+            // Deseleccionar anteriores
+            document.querySelectorAll('[id^="btn-explorer-"]').forEach(btn => {
+                btn.classList.remove('border-indigo-500', 'bg-indigo-50/20', 'ring-2', 'ring-indigo-100');
+                btn.classList.add('border-slate-200');
+            });
+
+            // Seleccionar actual
+            const activeBtn = document.getElementById(`btn-explorer-${id}`);
+            if (activeBtn) {
+                activeBtn.classList.add('border-indigo-500', 'bg-indigo-50/20', 'ring-2', 'ring-indigo-100');
+                activeBtn.classList.remove('border-slate-200');
+            }
+
+            const bat = BATTERY_DATABASE.find(b => b.id === id);
+            if (!bat) return;
+
+            // Actualizar interfaz
+            document.getElementById('exp-title').innerText = bat.name;
+            document.getElementById('exp-sub').innerText = bat.formula;
+            document.getElementById('exp-volt').innerText = bat.voltage;
+            document.getElementById('exp-density').innerText = bat.density;
+            document.getElementById('exp-eff').innerText = bat.efficiency;
+            document.getElementById('exp-cycles').innerText = bat.cycles;
+            document.getElementById('exp-deg').innerText = bat.degradation;
+            document.getElementById('exp-geopol').innerText = bat.geopolitics;
+
+            // Esqueleto químico
+            document.getElementById('cell-col-cat').innerText = bat.colCat;
+            document.getElementById('cell-cath').innerText = bat.cathMat;
+            document.getElementById('cell-elec').innerText = bat.electrolyte;
+            document.getElementById('cell-anode').innerText = bat.anodeMat;
+            document.getElementById('cell-col-an').innerText = bat.colAn;
+
+            // Insignia de Seguridad
+            const safetyBadge = document.getElementById('exp-safety-badge');
+            safetyBadge.innerText = `Seguridad: ${bat.safetyValue >= 90 ? 'Excelente' : bat.safetyValue >= 65 ? 'Moderada' : 'Crítica'}`;
+            safetyBadge.className = `px-3 py-1.5 text-xs font-bold rounded-full border ${
+                bat.safetyValue >= 90 ? 'bg-emerald-100 text-emerald-800 border-emerald-200' :
+                bat.safetyValue >= 65 ? 'bg-amber-100 text-amber-800 border-amber-200' :
+                'bg-rose-100 text-rose-800 border-rose-200'
+            }`;
+        }
+
+        // Inicializar Selectores Comparativos (Pestaña 2)
+        function initComparisonSelectors() {
+            const selA = document.getElementById('comp-sel-a');
+            const selB = document.getElementById('comp-sel-b');
+            const selC = document.getElementById('comp-sel-c');
+
+            selA.innerHTML = '';
+            selB.innerHTML = '';
+            selC.innerHTML = '';
+
+            BATTERY_DATABASE.forEach(bat => {
+                const opt = `<option value="${bat.id}">${bat.name}</option>`;
+                selA.innerHTML += opt;
+                selB.innerHTML += opt;
+                selC.innerHTML += opt;
+            });
+
+            // Pre-seleccionar defaults contrastantes
+            selA.value = "1"; // LFP Blade
+            selB.value = "5"; // NMC 811
+            selC.value = "8"; // Sodio-ion
+        }
+
+        // Actualizar Comparador y Radar
+        function updateComparisonCharts() {
+            const idA = parseInt(document.getElementById('comp-sel-a').value);
+            const idB = parseInt(document.getElementById('comp-sel-b').value);
+            const idC = parseInt(document.getElementById('comp-sel-c').value);
+
+            const batA = BATTERY_DATABASE.find(b => b.id === idA);
+            const batB = BATTERY_DATABASE.find(b => b.id === idB);
+            const batC = BATTERY_DATABASE.find(b => b.id === idC);
+
+            if (!batA || !batB || !batC) return;
+
+            // Actualizar Cabeceras de Tabla
+            document.getElementById('table-hdr-a').innerText = batA.name;
+            document.getElementById('table-hdr-b').innerText = batB.name;
+            document.getElementById('table-hdr-c').innerText = batC.name;
+
+            // Actualizar Datos de Tabla Comparativa
+            const tableBody = document.getElementById('comparison-table-body');
+            const parameters = [
+                { key: 'voltage', label: 'Voltaje Nominal' },
+                { key: 'density', label: 'Densidad Energética' },
+                { key: 'efficiency', label: 'Eficiencia de Celda' },
+                { key: 'cycles', label: 'Ciclabilidad (@80% DoD)' },
+                { key: 'lifespan', label: 'Vida Útil Estimada' },
+                { key: 'safety', label: 'Comportamiento Térmico' },
+                { key: 'degradation', label: 'Mecanismo de Falla' },
+                { key: 'geopolitics', label: 'Cadena de Suministro' }
+            ];
+
+            tableBody.innerHTML = '';
+            parameters.forEach(param => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 border-b border-slate-100";
+                tr.innerHTML = `
+                    <td class="py-3.5 px-4 font-bold text-slate-900 text-xs">${param.label}</td>
+                    <td class="py-3.5 px-4 text-xs text-slate-600">${batA[param.key]}</td>
+                    <td class="py-3.5 px-4 text-xs text-slate-600">${batB[param.key]}</td>
+                    <td class="py-3.5 px-4 text-xs text-slate-600">${batC[param.key]}</td>
+                `;
+                tableBody.appendChild(tr);
+            });
+
+            // Renderizar Gráfico de Radar
+            const ctx = document.getElementById('radarChart').getContext('2d');
+            
+            const chartData = {
+                labels: ['Densidad Energética', 'Seguridad Térmica', 'Ciclabilidad', 'Sostenibilidad / Costo', 'Tasa de Potencia (C-Rate)', 'Estabilidad Térmica'],
+                datasets: [
+                    {
+                        label: batA.name,
+                        data: [batA.densityValue, batA.safetyValue, batA.durabilityValue, batA.costValue, batA.powerValue, batA.tempStabilityValue],
+                        backgroundColor: 'rgba(59, 130, 246, 0.15)',
+                        borderColor: 'rgba(59, 130, 246, 1)',
+                        pointBackgroundColor: 'rgba(59, 130, 246, 1)',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: 'rgba(59, 130, 246, 1)',
+                        borderWidth: 2.5
+                    },
+                    {
+                        label: batB.name,
+                        data: [batB.densityValue, batB.safetyValue, batB.durabilityValue, batB.costValue, batB.powerValue, batB.tempStabilityValue],
+                        backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                        borderColor: 'rgba(239, 68, 68, 1)',
+                        pointBackgroundColor: 'rgba(239, 68, 68, 1)',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: 'rgba(239, 68, 68, 1)',
+                        borderWidth: 2.5
+                    },
+                    {
+                        label: batC.name,
+                        data: [batC.densityValue, batC.safetyValue, batC.durabilityValue, batC.costValue, batC.powerValue, batC.tempStabilityValue],
+                        backgroundColor: 'rgba(245, 158, 11, 0.15)',
+                        borderColor: 'rgba(245, 158, 11, 1)',
+                        pointBackgroundColor: 'rgba(245, 158, 11, 1)',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: 'rgba(245, 158, 11, 1)',
+                        borderWidth: 2.5
+                    }
+                ]
+            };
+
+            if (radarChartInstance) {
+                radarChartInstance.destroy();
+            }
+
+            radarChartInstance = new Chart(ctx, {
+                type: 'radar',
+                data: chartData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                boxWidth: 12,
+                                font: { size: 10, weight: 'bold', family: 'Inter' },
+                                padding: 15
+                            }
+                        }
+                    },
+                    scales: {
+                        r: {
+                            angleLines: { color: '#e2e8f0' },
+                            grid: { color: '#e2e8f0' },
+                            pointLabels: {
+                                font: { size: 9, weight: 'bold', family: 'Inter' },
+                                color: '#475569'
+                            },
+                            ticks: {
+                                display: false,
+                                stepSize: 20
+                            },
+                            suggestedMin: 20,
+                            suggestedMax: 100
+                        }
+                    }
+                }
+            });
+        }
+
+        // Algoritmo del Recomendador de Ingeniería (Pestaña 3)
+        function calculateRecommendation(event) {
+            event.preventDefault();
+
+            const app = document.getElementById('req-app').value;
+            const priority = document.getElementById('req-priority').value;
+            const temp = document.getElementById('req-temp').value;
+            const budget = document.querySelector('input[name="req-budget"]:checked').value;
+
+            let selectedChemistry = null;
+            let rationale = "";
+            let score = 95;
+            let costRange = "Moderado";
+
+            // Lógica prescriptiva multicriterio basada en restricciones reales
+            if (app === "bess-grid") {
+                if (priority === "cost" || budget === "low") {
+                    selectedChemistry = BATTERY_DATABASE.find(b => b.id === 8); // Na-Ion
+                    rationale = "Para proyectos BESS donde el costo de capital (CAPEX) es restrictivo y el terreno no limita la huella física, el Sodio-Ion representa la alternativa idónea, eliminando por completo la dependencia del litio.";
+                    costRange = "Muy Bajo (< $60/kWh)";
+                    score = 98;
+                } else {
+                    selectedChemistry = BATTERY_DATABASE.find(b => b.id === 1); // LFP Blade
+                    rationale = "El almacenamiento estacionario de red requiere un balance riguroso entre costo por ciclo de vida y seguridad. El LFP (Fórmula Blade/CTP) entrega una durabilidad óptima libre de riesgos de fuga térmica catastróficos en caso de fallo del climatizador.";
+                    costRange = "Bajo (< $75/kWh)";
+                    score = 96;
+                }
+            } else if (app === "ev-premium") {
+                if (priority === "density" || budget === "high") {
+                    selectedChemistry = BATTERY_DATABASE.find(b => b.id === 9); // Semi-sólido
+                    rationale = "Para vehículos eléctricos premium de máxima autonomía, la electroquímica semisólida basada en gel reduce los riesgos inflamables clásicos mientras maximiza la densidad a nivel de pack superando los 300 Wh/kg.";
+                    costRange = "Muy Alto (> $140/kWh)";
+                    score = 92;
+                } else {
+                    selectedChemistry = BATTERY_DATABASE.find(b => b.id === 5); // NMC 811
+                    rationale = "La autonomía vehicular extendida tradicional exige químicas ricas en Níquel de alta densidad. El NMC 811 permite alta potencia de descarga pero requiere una gestión térmica activa crítica (chiller dedicado) para prevenir el colapso a 180°C.";
+                    costRange = "Alto (~ $110/kWh)";
+                    score = 88;
+                }
+            } else if (app === "industrial-heavy" || priority === "power") {
+                selectedChemistry = BATTERY_DATABASE.find(b => b.id === 7); // LTO
+                rationale = "Las operaciones industriales intensivas de carga ultra-rápida exigen tasas de corriente (C-Rate) extremas sin generar degradación física por deposición de dendritas de litio. El Titanato de Litio (LTO) soporta más de 20,000 ciclos conservando su estabilidad estructural.";
+                costRange = "Alto (Sustento ciclo de vida largo)";
+                score = 99;
+            } else if (app === "ev-urban" || app === "ev-micro") {
+                if (budget === "low" || priority === "cost") {
+                    selectedChemistry = BATTERY_DATABASE.find(b => b.id === 8); // Na-ion
+                    rationale = "Los vehículos de micro-movilidad y transporte urbano de bajo alcance encuentran en el Sodio-ion la ruta más competitiva, garantizando la resiliencia en la cadena de suministro y permitiendo el transporte seguro descargado a 0V.";
+                    costRange = "Muy Bajo (< $60/kWh)";
+                    score = 94;
+                } else {
+                    selectedChemistry = BATTERY_DATABASE.find(b => b.id === 2); // LFP Qilin
+                    rationale = "El transporte urbano masivo (Buses/Flotas) prioriza el costo total de propiedad (TCO) y la seguridad de los pasajeros. El LFP integrado tipo Cell-to-Pack entrega durabilidad de hasta 15 años sin los altos riesgos de combustión química de las celdas ternarias.";
+                    costRange = "Bajo (~ $70/kWh)";
+                    score = 91;
+                }
+            } else {
+                // Default fallback lógico
+                selectedChemistry = BATTERY_DATABASE.find(b => b.id === 1);
+                rationale = "El balance estándar de ingeniería de los últimos años dicta que las formulaciones estables de Litio-Ferrofosfato con integración estructural son la opción por defecto óptima para maximizar la seguridad a bajo costo.";
+                costRange = "Bajo (< $75/kWh)";
+            }
+
+            // Aplicar penalizaciones o ajustes por temperatura extrema
+            if (temp === "cold" && selectedChemistry.id !== 7 && selectedChemistry.id !== 8) {
+                rationale += " ADVERTENCIA: La temperatura extremadamente fría del entorno penalizará la retención de carga de esta química. Considera LTO o Na-ion para operar a -20°C sin necesidad de resistencias de precalentamiento activas.";
+                score -= 10;
+            } else if (temp === "hot" && (selectedChemistry.id === 5 || selectedChemistry.id === 6)) {
+                rationale += " ATENCIÓN CRÍTICA: Operar químicas ricas en Níquel en ambientes calurosos (>40°C) acelera de forma exponencial la degradación de partículas y eleva los riesgos de fuga térmica. Es obligatorio sobredimensionar el circuito de climatización con chiller líquido.";
+                score -= 15;
+            }
+
+            // Actualizar interfaz del Prescriptor
+            document.getElementById('rec-chemistry-title').innerText = selectedChemistry.name;
+            document.getElementById('rec-chemistry-subtitle').innerText = selectedChemistry.formula;
+            document.getElementById('rec-rationale').innerText = rationale;
+            document.getElementById('rec-score').innerText = `${score}%`;
+            document.getElementById('rec-cost-range').innerText = costRange;
+
+            document.getElementById('rec-bms-guide').innerText = selectedChemistry.bms;
+            document.getElementById('rec-hvac-guide').innerText = selectedChemistry.hvac;
+        }
+
+        // Generar Visualización de Datos Planos en CSV (Pestaña 4)
+        function renderCSVData() {
+            const viewer = document.getElementById('csv-viewer');
+            
+            // Títulos
+            const headers = "ID;Tipo_batería;QuímicaComposición_cátodo;Ánodo_típico;Materiales_clave;Eficiencia_%_típica;Potencia_kW_típica_vehículo;Riesgo_térmico;Durabilidad_ciclos;Vida_útil_años;Mantenimiento;Fabricante_ejemplo;Tipo_fabricante;Ubicación_materiales;Plantas_procesamiento\n";
+            
+            let body = "";
+            BATTERY_DATABASE.forEach(b => {
+                // Condensamos datos para mantener la línea estrictamente limpia
+                body += `${b.id};"${b.name}";"${b.cathMat}";"${b.anodeMat}";"${b.formula}";"${b.efficiency}";"${b.voltage}";"${b.safety}";"${b.cycles}";"${b.lifespan}";"${b.bms.substring(0,50)}...";"${b.name.split(' ')[0]}";"Tier 1";"${b.geopolitics.split('.')[0]}";"Global Sites"\n`;
+            });
+
+            viewer.textContent = headers + body;
+        }
+
+        // Simular descarga de archivo CSV
+        function downloadCSV() {
+            const viewer = document.getElementById('csv-viewer').textContent;
+            const blob = new Blob([viewer], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.setAttribute('download', 'BESS-EAN_Estudio_Comparativo_Baterias.csv');
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+    </script>
+</body>
+</html>
